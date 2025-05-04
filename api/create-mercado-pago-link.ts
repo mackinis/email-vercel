@@ -1,13 +1,9 @@
-// src/app/api/create-mercado-pago-link/route.ts
-import { NextResponse } from "next/server";
+// email-vercel/api/create-mercado-pago-link.ts
 import { MercadoPagoConfig, Preference } from "mercadopago";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { PreferenceCreateData } from "mercadopago/dist/clients/preference/create/types";
 
 const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-
-if (!accessToken) {
-  console.error("⚠️ MERCADO_PAGO_ACCESS_TOKEN is missing.");
-}
 
 const mp = new MercadoPagoConfig({
   accessToken: accessToken || "",
@@ -15,13 +11,16 @@ const mp = new MercadoPagoConfig({
 
 const preference = new Preference(mp);
 
-export async function POST(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
-    const body = await req.json();
-    const { returnUrl, cartItems, userProfile, externalReference } = body;
+    const { returnUrl, cartItems, userProfile, externalReference } = req.body;
 
     if (!cartItems?.length || !userProfile) {
-      return NextResponse.json({ error: "Missing cart items or user profile" }, { status: 400 });
+      return res.status(400).json({ error: "Missing cart items or user profile" });
     }
 
     const items = cartItems.map((item: any) => ({
@@ -49,11 +48,11 @@ export async function POST(req: Request) {
 
     const result = await preference.create({ body: preferenceData });
 
-    return NextResponse.json({
+    res.status(200).json({
       init_point: result.init_point || result.sandbox_init_point,
     });
   } catch (error: any) {
     console.error("❌ Error creating MercadoPago preference:", error);
-    return NextResponse.json({ error: "Failed to create MercadoPago preference" }, { status: 500 });
+    res.status(500).json({ error: "Failed to create MercadoPago preference" });
   }
 }
