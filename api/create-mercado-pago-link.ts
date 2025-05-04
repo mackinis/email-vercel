@@ -1,60 +1,59 @@
-import { MercadoPagoConfig, Preference } from 'mercadopago';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+// src/app/api/create-mercado-pago-link/route.ts
+import { NextResponse } from "next/server";
+import { MercadoPagoConfig, Preference } from "mercadopago";
+import type { PreferenceCreateData } from "mercadopago/dist/clients/preference/create/types";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-  const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!accessToken) return res.status(500).json({ error: 'Missing Mercado Pago access token' });
+if (!accessToken) {
+  console.error("⚠️ MERCADO_PAGO_ACCESS_TOKEN is missing.");
+}
 
-  const { returnUrl, cartItems, userProfile, externalReference } = req.body;
+const mp = new MercadoPagoConfig({
+  accessToken: accessToken || "",
+});
 
-  if (!cartItems?.length || !userProfile) {
-    return res.status(400).json({ error: 'Missing cart items or user profile' });
-  }
+const preference = new Preference(mp);
 
-  const client = new MercadoPagoConfig({ accessToken });
-  const preference = new Preference(client);
-
-  const items = cartItems.map((item: any) => ({
-    id: item.product.id,
-    title: item.product.name,
-    quantity: item.quantity,
-    unit_price: item.product.priceARS,
-    currency_id: 'ARS',
-    picture_url: item.product.imageUrl,
-    description: item.product.description || '',
-    category_id: item.product.category || undefined,
-  }));
-
-  const payer = {
-    name: userProfile.firstName,
-    surname: userProfile.lastName,
-    email: userProfile.email,
-    phone: { number: userProfile.phone || '' },
-  };
-
-  const preferenceData = {
-    items,
-    payer,
-    back_urls: {
-      success: `${returnUrl}?status=success&ref=${externalReference}`,
-      failure: `${returnUrl}?status=failure&ref=${externalReference}`,
-      pending: `${returnUrl}?status=pending&ref=${externalReference}`,
-    },
-    auto_return: 'approved',
-    external_reference: externalReference,
-  };
-
+export async function POST(req: Request) {
   try {
-    const result = await preference.create({ body: preferenceData });
-    const initPoint = result.sandbox_init_point || result.init_point;
-    if (!initPoint) throw new Error('Missing init_point');
+    const body = await req.json();
+    const { returnUrl, cartItems, userProfile, externalReference } = body;
 
-    res.status(200).json({ init_point: initPoint });
+    if (!cartItems?.length || !userProfile) {
+      return NextResponse.json({ error: "Missing cart items or user profile" }, { status: 400 });
+    }
+
+    const items = cartItems.map((item: any) => ({
+      title: item.product.name,
+      quantity: item.quantity,
+      unit_price: item.product.priceARS,
+      currency_id: "ARS",
+    }));
+
+    const preferenceData: PreferenceCreateData = {
+      items,
+      payer: {
+        name: userProfile.firstName,
+        surname: userProfile.lastName,
+        email: userProfile.email,
+      },
+      back_urls: {
+        success: `${returnUrl}?status=success&ref=${externalReference}`,
+        failure: `${returnUrl}?status=failure&ref=${externalReference}`,
+        pending: `${returnUrl}?status=pending&ref=${externalReference}`,
+      },
+      auto_return: "approved",
+      external_reference: externalReference,
+    };
+
+    const result = await preference.create({ body: preferenceData });
+
+    return NextResponse.json({
+      init_point: result.init_point || result.sandbox_init_point,
+    });
   } catch (error: any) {
-    console.error('Error creating Mercado Pago preference:', error);
-    res.status(500).json({ error: error.message || 'Failed to create preference' });
+    console.error("❌ Error creating MercadoPago preference:", error);
+    return NextResponse.json({ error: "Failed to create MercadoPago preference" }, { status: 500 });
   }
 }
