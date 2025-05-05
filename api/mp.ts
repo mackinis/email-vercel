@@ -1,36 +1,30 @@
-import { MercadoPagoConfig, Preference } from "mercadopago";
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { PreferenceCreateData } from "mercadopago/dist/clients/preference/create/types";
+import mercadopago from "mercadopago";
 
-const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+export default async function handler(req: any, res: any) {
+  // Configuración de CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-const mp = new MercadoPagoConfig({
-  accessToken: accessToken || "",
-});
-
-const preference = new Preference(mp);
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-   // Permitir solicitudes desde cualquier origen (ajustar según necesidades)
-   res.setHeader('Access-Control-Allow-Origin', '*');
-   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
- 
-   // Si la solicitud es de tipo OPTIONS (preflight), respondemos con 200 sin procesar más
-   if (req.method === 'OPTIONS') {
-     return res.status(200).end();
-   }
-
-  
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
   }
+
+  if (req.method !== "POST") {
+    console.error("❌ Method not allowed:", req.method); // Registro del error
+    return res.status(405).json({ error: "Only POST method is allowed" });
+  }
+
+  // Configurar MercadoPago
+  mercadopago.configure({
+    access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
+  });
 
   try {
     const { returnUrl, cartItems, userProfile, externalReference } = req.body;
 
     if (!cartItems?.length || !userProfile) {
+      console.error("❌ Missing cart items or user profile:", req.body); // Registro del error
       return res.status(400).json({ error: "Missing cart items or user profile" });
     }
 
@@ -41,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       currency_id: "ARS",
     }));
 
-    const preferenceData: PreferenceCreateData = {
+    const preferenceData = {
       items,
       payer: {
         name: userProfile.firstName,
@@ -49,21 +43,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         email: userProfile.email,
       },
       back_urls: {
-        success: ${returnUrl}?status=success&ref=${externalReference},
-        failure: ${returnUrl}?status=failure&ref=${externalReference},
-        pending: ${returnUrl}?status=pending&ref=${externalReference},
+        success: `${returnUrl}?status=success&ref=${externalReference}`,
+        failure: `${returnUrl}?status=failure&ref=${externalReference}`,
+        pending: `${returnUrl}?status=pending&ref=${externalReference}`,
       },
       auto_return: "approved",
       external_reference: externalReference,
     };
 
-    const result = await preference.create({ body: preferenceData });
+    const result = await mercadopago.preferences.create(preferenceData);
+    
+    if (result.body && result.body.init_point) {
+      console.log("✅ MercadoPago preference created:", result.body.init_point); // Registro del resultado exitoso
+    }
 
     res.status(200).json({
-      init_point: result.init_point || result.sandbox_init_point,
+      init_point: result.body.init_point || result.body.sandbox_init_point,
     });
-  } catch (error: any) {
-    console.error("❌ Error creating MercadoPago preference:", error);
+  } catch (error) {
+    console.error("❌ Error creating MercadoPago preference:", error); // Registro del error
     res.status(500).json({ error: "Failed to create MercadoPago preference" });
   }
 }
