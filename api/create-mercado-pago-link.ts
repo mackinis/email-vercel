@@ -1,4 +1,3 @@
-// email-vercel/api/create-mercado-pago-link.ts
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { PreferenceCreateData } from "mercadopago/dist/clients/preference/create/types";
@@ -12,17 +11,16 @@ const mp = new MercadoPagoConfig({
 const preference = new Preference(mp);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // --- CORS ---
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  // Configuración de CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  // --- /CORS ---
 
-  if (req.method !== "POST") {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
