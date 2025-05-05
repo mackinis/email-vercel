@@ -11,8 +11,8 @@
   "description": "",
   "dependencies": {
     "nodemailer": "^7.0.0",
-    "mercadopago": "^3.0.0", // Agregar MercadoPago como dependencia
-    "@vercel/node": "^1.11.0" // Agregar @vercel/node como dependencia
+    "mercadopago": "^3.0.0",
+    "@vercel/node": "^1.11.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.3"
