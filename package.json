@@ -11,7 +11,7 @@
   "description": "",
   "dependencies": {
     "nodemailer": "^7.0.0",
-    "mercadopago": "^3.0.0",
+    "mercadopago": "^2.5.0",
     "@vercel/node": "^1.11.0"
   },
   "devDependencies": {
