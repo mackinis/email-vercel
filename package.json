@@ -10,7 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "nodemailer": "^7.0.0"
+    "nodemailer": "^7.0.0",
+    "mercadopago": "^3.0.0", 
+    "@vercel/node": "^1.11.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.3"
