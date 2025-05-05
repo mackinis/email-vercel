@@ -9,8 +9,8 @@ const mp = new MercadoPagoConfig({
 });
 
 const preference = new Preference(mp);
- 
- export default async function handler(req: any, res: any) {
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
    // Permitir solicitudes desde cualquier origen (ajustar según necesidades)
    res.setHeader('Access-Control-Allow-Origin', '*');
    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
