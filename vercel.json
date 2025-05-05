@@ -2,8 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/mp.ts",  // Ruta a tu archivo de la API
-      "use": "@vercel/node"  // Especifica que usas Vercel Node para ejecutar la API
+      "src": "api/**.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
     }
   ]
 }
