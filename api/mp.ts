@@ -11,6 +11,7 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method !== "POST") {
+    console.error("❌ Method not allowed:", req.method); // Registro del error
     return res.status(405).json({ error: "Only POST method is allowed" });
   }
 
@@ -23,6 +24,7 @@ export default async function handler(req: any, res: any) {
     const { returnUrl, cartItems, userProfile, externalReference } = req.body;
 
     if (!cartItems?.length || !userProfile) {
+      console.error("❌ Missing cart items or user profile:", req.body); // Registro del error
       return res.status(400).json({ error: "Missing cart items or user profile" });
     }
 
@@ -50,12 +52,16 @@ export default async function handler(req: any, res: any) {
     };
 
     const result = await mercadopago.preferences.create(preferenceData);
+    
+    if (result.body && result.body.init_point) {
+      console.log("✅ MercadoPago preference created:", result.body.init_point); // Registro del resultado exitoso
+    }
 
     res.status(200).json({
       init_point: result.body.init_point || result.body.sandbox_init_point,
     });
   } catch (error) {
-    console.error("❌ Error creating MercadoPago preference:", error);
+    console.error("❌ Error creating MercadoPago preference:", error); // Registro del error
     res.status(500).json({ error: "Failed to create MercadoPago preference" });
   }
 }
