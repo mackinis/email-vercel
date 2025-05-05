@@ -1,22 +1,23 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import mercadopago from "mercadopago";
 
-mercadopago.configure({
-  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
-});
+export default async function handler(req: any, res: any) {
+  // Configuración de CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Only POST method is allowed" });
   }
+
+  // Configurar MercadoPago
+  mercadopago.configure({
+    access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
+  });
 
   try {
     const { returnUrl, cartItems, userProfile, externalReference } = req.body;
@@ -32,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       currency_id: "ARS",
     }));
 
-    const preference = {
+    const preferenceData = {
       items,
       payer: {
         name: userProfile.firstName,
@@ -48,12 +49,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       external_reference: externalReference,
     };
 
-    const result = await mercadopago.preferences.create(preference);
+    const result = await mercadopago.preferences.create(preferenceData);
 
     res.status(200).json({
       init_point: result.body.init_point || result.body.sandbox_init_point,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error creating MercadoPago preference:", error);
     res.status(500).json({ error: "Failed to create MercadoPago preference" });
   }
